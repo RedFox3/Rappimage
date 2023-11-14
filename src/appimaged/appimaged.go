@@ -73,17 +73,10 @@ var commit string
 
 var watchedDirectories []string
 
-var home, _ = os.UserHomeDir()
 var candidateDirectories = append(
 	strings.Split(os.Getenv("PATH"), ":"),
 	[]string{
-		xdg.UserDirs.Download,
-		xdg.UserDirs.Desktop,
-		home + "/.local/bin",
-		home + "/bin",
-		home + "/Applications",
-		"/opt",
-		"/usr/local/bin",
+		"/Applications",
 	}...,
 )
 
@@ -307,11 +300,6 @@ func updateMenu() error {
 func checkDirectories() {
 	// Register AppImages from well-known locations
 	// https://github.com/AppImage/appimaged#monitored-directories
-	err := os.MkdirAll(home+"/Applications", 0755)
-	if err != nil {
-		helpers.PrintError("main", err)
-	}
-
 	for _, dir := range candidateDirectories {
 		if helpers.Exists(dir) {
 			watchedDirectories = append(watchedDirectories, dir)
