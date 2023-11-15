@@ -146,7 +146,7 @@ func (ai AppImage) extractDirIconAsThumbnail() error {
 	if *verbosePtr {
 		log.Println("thumbnail: Writing icon to", ai.thumbnailfilepath)
 	}
-	err = os.WriteFile(ai.thumbnailfilepath, iconBuf, 0600)
+	err = os.WriteFile(ai.thumbnailfilepath, iconBuf, 0644)
 	helpers.LogError("thumbnail", err)
 	if err != nil {
 		return err

@@ -346,12 +346,12 @@ func setupToRunThroughSystemd() {
 
 		log.Println("Manually launched, not by systemd. Check if enabled in systemd...")
 
-		if _, err := os.Stat("/etc/systemd/user/appimaged.service"); os.IsNotExist(err) {
-			log.Println("/etc/systemd/user/appimaged.service does not exist")
-			installServiceFileInHome()
+		if _, err := os.Stat("/etc/systemd/system/appimaged.service"); os.IsNotExist(err) {
+			log.Println("/etc/systemd/system/appimaged.service does not exist")
+			installServiceFile()
 		}
 
-		prc := exec.Command("systemctl", "--user", "status", "appimaged")
+		prc := exec.Command("systemctl", "status", "appimaged")
 		out, err := prc.CombinedOutput()
 		if err != nil {
 			log.Println(prc.String())
@@ -363,7 +363,7 @@ func setupToRunThroughSystemd() {
 
 		if strings.Contains(output, " enabled; ") {
 			log.Println("Restarting via systemd...")
-			prc := exec.Command("systemctl", "--user", "restart", "appimaged")
+			prc := exec.Command("systemctl", "restart", "appimaged")
 			_, err := prc.CombinedOutput()
 			if err != nil {
 				log.Println(prc.String())
@@ -373,21 +373,21 @@ func setupToRunThroughSystemd() {
 			}
 		} else {
 			log.Println("Enabling systemd service...")
-			prc := exec.Command("systemctl", "--user", "enable", "appimaged")
+			prc := exec.Command("systemctl", "enable", "appimaged")
 			_, err := prc.CombinedOutput()
 			if err != nil {
 				log.Println(prc.String())
 				log.Println(err)
 			}
 			log.Println("Starting systemd service...")
-			prc = exec.Command("systemctl", "--user", "restart", "appimaged")
+			prc = exec.Command("systemctl", "restart", "appimaged")
 			_, err = prc.CombinedOutput()
 			if err != nil {
 				log.Println(prc.String())
 				log.Println(err)
 			} else {
 				log.Println("appimaged should now be running via systemd. To check this, run")
-				log.Println("/usr/bin/systemctl -l --no-pager --user status appimaged")
+				log.Println("/usr/bin/systemctl -l --no-pager status appimaged")
 				os.Exit(0)
 			}
 		}
@@ -463,35 +463,17 @@ func CheckIfInvokedBySystemd() bool {
 	return false
 }
 
-// installServiceFileInHome installs a service file for the currently running
-// AppImage in $XDG_DATA_HOME/systemd/user or $HOME/.local/share/systemd/user
-func installServiceFileInHome() {
+// installServiceFile installs a service file for the currently running
+// AppImage in /etc/systemd/system
+func installServiceFile() {
 	var err error
-	home, _ := os.UserHomeDir()
 	// Note that https://www.freedesktop.org/software/systemd/man/systemd.unit.html
 	// says $XDG_CONFIG_HOME/systemd/user or $HOME/.config/systemd/user
 	// Units of packages that have been installed in the home directory
 	// ($XDG_CONFIG_HOME is used if set, ~/.config otherwise)
 	var pathToServiceDir string
-	if os.Getenv("XDG_CONFIG_HOME") != "" {
-		log.Println("Creating $XDG_CONFIG_HOME/systemd/user/appimaged.service")
-		err = os.MkdirAll(xdg.ConfigHome+"/systemd/user/", os.ModePerm)
-		if err == nil {
-			pathToServiceDir = xdg.ConfigHome + "/systemd/user/"
-		} else {
-			helpers.LogError("Failed making directory for service files", err)
-			return
-		}
-	} else {
-		log.Println("Creating ~/.config/systemd/user/appimaged.service")
-		err = os.MkdirAll(home+"/.config/systemd/user/", os.ModePerm)
-		if err == nil {
-			pathToServiceDir = home + "/.config/systemd/user/"
-		} else {
-			helpers.LogError("Failed making directory for service files", err)
-			return
-		}
-	}
+	log.Println("Creating /etc/systemd/system/appimaged.service")
+	pathToServiceDir = "/etc/systemd/system/"
 
 	log.Println("thisai.path:", thisai.Path)
 	d1 := []byte(`[Unit]
@@ -514,7 +496,7 @@ WantedBy=default.target`)
 	err = syncWriteFile(pathToServiceDir+"appimaged.service", d1, 0644)
 	helpers.LogError("Error writing service file", err)
 
-	prc := exec.Command("systemctl", "--user", "daemon-reload")
+	prc := exec.Command("systemctl", "daemon-reload")
 	_, err = prc.CombinedOutput()
 	if err != nil {
 		log.Println(prc.String())
